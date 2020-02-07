@@ -35,3 +35,7 @@ func main() {
 func anotherFunc() {
 	fmt.Printf("Hi mom!")
 }
+
+func yetAnotherFunc() {
+	fmt.Printf("Prow")
+}
