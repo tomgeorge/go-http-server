@@ -31,3 +31,7 @@ func main() {
 	logger.Info("Starting to serve")
 	http.ListenAndServe(":8080", nil)
 }
+
+func anotherFunc() {
+	fmt.Printf("Hi mom!")
+}
