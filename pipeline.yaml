@@ -1,0 +1,82 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: go-http-server-git
+spec:
+  type: git
+  params:
+    - name: url
+      value: https://github.com/tomgeorge/go-http-server
+    - name: revision
+      value: master
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: go-http-server-image
+spec:
+  type: image
+  params:
+    - name: url
+      value: quay.io/tgeorge/go-http-server
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: build-go-code
+spec:
+  inputs:
+    params:
+    - name: package
+      description: package to build
+    - name: pathToDockerfile
+      default: /workspace/go/src/$(inputs.params.package)/Dockerfile
+    - name: pathToContext
+      default: /workspace/go
+    resources:
+      - name: source-code
+        type: git
+        targetPath: go/src/$(inputs.params.package)
+  steps:
+    - name: run-go-build
+      image: gcr.io/kaniko-project/executor:v0.15.0
+      env:
+      - name: "DOCKER_CONFIG"
+        value: "/tekton/home/.docker"
+      command:
+      - /kaniko/executor
+      args:
+      - --dockerfile=$(inputs.params.pathToDockerfile)
+      - --destination=$(outputs.resources.builtImage.url)
+      - --context=$(inputs.params.pathToContext)
+  outputs:
+    resources:
+      - name: builtImage
+        type: image
+
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: build-master
+spec:
+  resources:
+    - name: repo
+      type: git
+    - name: outputImage
+      type: image
+  tasks:
+    - name: run-go-build
+      params:
+      - name: package
+        value: github.com/tomgeorge/go-http-server
+      taskRef: 
+        name: build-go-code
+      resources:
+        inputs:
+        - name: source-code
+          resource: repo
+        outputs:
+        - name: builtImage
+          resource: outputImage
+
